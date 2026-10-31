@@ -20,9 +20,9 @@ Python 3.9+, Flask, SQLite, server-rendered HTML (Jinja), Werkzeug PBKDF2-SHA256
 ```bash
 git clone https://github.com/Emon-Developer-369/Medi-Vault.git
 cd Medi-Vault
-./run.sh
+sh run.sh
 ```
-Then open **http://127.0.0.1:5001**. `run.sh` creates a virtual environment, installs Flask, creates `.env` with a random secret and starts the app. (Port 5001 is used because macOS reserves port 5000 for AirPlay.) To use another port: `PORT=8000 ./run.sh`.
+Then open **http://127.0.0.1:5001**. `run.sh` creates a virtual environment, installs Flask, creates `.env` with a random secret and starts the app. (Port 5001 is used because macOS reserves port 5000 for AirPlay.) To use another port: `PORT=8000 sh run.sh`.
 
 ## Demo logins (fake, for the demo only)
 | Username | Password | Can do |
