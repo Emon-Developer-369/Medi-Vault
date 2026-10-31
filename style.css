@@ -1,0 +1,6 @@
+body{font-family:Helvetica,Arial,sans-serif;font-size:11pt;line-height:1.4;color:#222;margin:0 10px}
+h1{font-size:15pt;color:#14365d;border-bottom:1px solid #c5d3d8;padding-bottom:3px;margin-top:18px}
+header h1.title{font-size:22pt;border:none}
+table{border-collapse:collapse;width:100%;margin:6px 0;font-size:10pt}
+th{background:#14365d;color:#fff;text-align:left;padding:4px 6px}td{border:1px solid #c5d3d8;padding:4px 6px;vertical-align:top}
+tr:nth-child(even) td{background:#eef5f7}code{background:#f0f0f0;padding:0 3px}
