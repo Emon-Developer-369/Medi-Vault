@@ -38,7 +38,8 @@ Medi-Vault/
   run.sh            # one-command setup and start
   requirements.txt  # Flask
   .env.example      # settings template (copy to .env; .env is not committed)
-  PRD.md / PRD.pdf  # product requirements document
+  PRD.pdf           # official OJT PRD (MediVault role-based portal), signed
+  IMPLEMENTATION.md # what this repo actually built vs the PRD
   CHANGELOG.md  LICENSE  .gitignore
 ```
 Created when running: `medivault.db` (database) and `private_uploads/` (uploaded files). Both are git-ignored.
@@ -51,7 +52,7 @@ Learning prototype: single hospital, no OCR, no encounters, no virus scanning, n
 - Nikhil
 
 ## Future work
-Wrong-patient warning, tamper-evident audit log, viewer watermark, multiple hospitals with data isolation, multi-factor login, encounters (OPD/IPD), OCR with human review, PostgreSQL and cloud storage, FHIR / ABDM support. See `PRD.md`.
+Wrong-patient warning, tamper-evident audit log, viewer watermark, multiple hospitals with data isolation, multi-factor login, encounters (OPD/IPD), OCR with human review, PostgreSQL and cloud storage, FHIR / ABDM support. See `PRD.pdf` and `IMPLEMENTATION.md`.
 
 ## License
 MIT - see `LICENSE`.
