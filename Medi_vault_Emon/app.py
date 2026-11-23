@@ -418,13 +418,13 @@ def init_db(db_path=None):
 
     # Production starts with one explicitly configured auditor account.
     if os.environ.get("APP_ENV") == "production":
-        admin_username = os.environ.get("BOOTSTRAP_AUDITOR_USERNAME", "").strip()
-        admin_password = os.environ.get("BOOTSTRAP_AUDITOR_PASSWORD", "")
-        if not admin_username or len(admin_password) < 16:
-            raise RuntimeError("Set BOOTSTRAP_AUDITOR_USERNAME and a BOOTSTRAP_AUDITOR_PASSWORD of at least 16 characters.")
-        if not re.fullmatch(r"[A-Za-z0-9_.-]{3,32}", admin_username):
-            raise RuntimeError("BOOTSTRAP_AUDITOR_USERNAME must be 3-32 letters, numbers, dots, underscores, or hyphens.")
         if not c.execute("SELECT 1 FROM users WHERE role='auditor' AND status='approved'").fetchone():
+            admin_username = os.environ.get("BOOTSTRAP_AUDITOR_USERNAME", "").strip()
+            admin_password = os.environ.get("BOOTSTRAP_AUDITOR_PASSWORD", "")
+            if not admin_username or len(admin_password) < 16:
+                raise RuntimeError("Set BOOTSTRAP_AUDITOR_USERNAME and a BOOTSTRAP_AUDITOR_PASSWORD of at least 16 characters.")
+            if not re.fullmatch(r"[A-Za-z0-9_.-]{3,32}", admin_username):
+                raise RuntimeError("BOOTSTRAP_AUDITOR_USERNAME must be 3-32 letters, numbers, dots, underscores, or hyphens.")
             admin_hash = generate_password_hash(admin_password, method="pbkdf2:sha256")
             c.execute(
                 "INSERT INTO users(username, pw_hash, role, status, must_change_password, session_version, created_at) VALUES(?, ?, 'auditor', 'approved', 1, 0, ?)",
