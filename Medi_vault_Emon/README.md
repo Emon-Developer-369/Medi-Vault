@@ -55,3 +55,19 @@ Edit `.env` before testing Google sign-in.
 - Do not commit real patient information. Use synthetic data for demos.
 - The local redirect URI above is for local development only. For a deployed site, use HTTPS and add the exact production origin and callback URL to Google Cloud Console and the server environment.
 - This student/demo project should not be used to store real medical records without a proper security, privacy, legal, and operational review.
+
+## Deploy on Render
+
+The repository includes a root-level `render.yaml` blueprint. In Render, choose **New → Blueprint**, connect this GitHub repository, and let Render read the blueprint. It configures the Flask app's root directory, Gunicorn start command, environment variables, and a persistent disk mounted at `/var/data`.
+
+After Render creates the service:
+
+1. Open the service's **Environment** settings.
+2. Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to the OAuth credentials from Google Cloud. Do not put these values in source code or commit them.
+3. Set `GOOGLE_REDIRECT_URI` to `https://YOUR-RENDER-SERVICE.onrender.com/auth/google/callback`, replacing the hostname with the exact URL Render assigned to your service.
+4. In Google Cloud Console, add that exact HTTPS callback URL under **Authorized redirect URIs**. Add the production site origin under **Authorized JavaScript origins** if required by your OAuth client.
+5. Save the environment variables and redeploy/restart the service.
+
+The blueprint generates a production `SECRET_KEY`. The database and private uploaded documents are configured to use the persistent disk. Do not remove that disk or change its mount path without migrating the data first.
+
+**Before launch:** use synthetic patient records only; verify Google sign-in, registration, login, role permissions, document upload/download, prescriptions, and audit logging on the deployed URL. A successful deployment does not by itself constitute a security or healthcare-compliance review.

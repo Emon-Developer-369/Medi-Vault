@@ -69,18 +69,23 @@ GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo"
 
-UPLOADS = os.path.join(BASE, "private_uploads")
+UPLOADS = os.environ.get("MEDIVAULT_UPLOADS") or os.path.join(BASE, "private_uploads")
 os.makedirs(UPLOADS, exist_ok=True)
 
 
 def get_db_path():
-    return os.environ.get("MEDIVAULT_DB") or os.path.join(BASE, "medivault.db")
+    path = os.environ.get("MEDIVAULT_DB") or os.path.join(BASE, "medivault.db")
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    return path
 
 
 app = Flask(__name__)
 # Trust one reverse-proxy hop so external URLs (Google OAuth redirect) use the public scheme/host.
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
-app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
+SECRET_KEY = os.environ.get("SECRET_KEY")
+if os.environ.get("RENDER") == "true" and not SECRET_KEY:
+    raise RuntimeError("Set SECRET_KEY in the production environment.")
+app.secret_key = SECRET_KEY or secrets.token_hex(32)
 
 # Default is SameSite=Lax (PRD). Embedded previews (cross-site iframes) need SameSite=None + Secure.
 _cookie_samesite = os.environ.get("MEDIVAULT_COOKIE_SAMESITE", "Lax")
