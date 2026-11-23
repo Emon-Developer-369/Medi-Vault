@@ -2,25 +2,27 @@ services:
   - type: web
     name: medi-vault
     runtime: python
-    plan: starter
+    plan: free
     rootDir: Medi_vault_Emon
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --workers 2 --bind 0.0.0.0:$PORT app:app
+    startCommand: gunicorn --workers 1 --threads 4 --timeout 120 --bind 0.0.0.0:$PORT app:app
     healthCheckPath: /
     envVars:
+      - key: APP_ENV
+        value: production
       - key: SECRET_KEY
         generateValue: true
       - key: MEDIVAULT_DB
-        value: /var/data/medivault.db
+        value: /tmp/medivault.db
       - key: MEDIVAULT_UPLOADS
-        value: /var/data/private_uploads
+        value: /tmp/private_uploads
+      - key: BOOTSTRAP_AUDITOR_USERNAME
+        sync: false
+      - key: BOOTSTRAP_AUDITOR_PASSWORD
+        sync: false
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
       - key: GOOGLE_REDIRECT_URI
         sync: false
-    disk:
-      name: medi-vault-data
-      mountPath: /var/data
-      sizeGB: 1
