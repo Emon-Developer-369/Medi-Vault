@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Patient Login - Medi Vault{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div class="row g-0 w-100 mv-card overflow-hidden fade-up">
+    <div class="col-lg-5 auth-side p-4 p-md-5 d-flex flex-column justify-content-between">
+      <div>
+        <span class="badge rounded-pill text-bg-light text-primary mb-3 px-3 py-2"><i class="bi bi-heart-pulse me-1" aria-hidden="true"></i>Patient portal</span>
+        <h1 class="h2 fw-bold">Your health, in your hands</h1>
+        <p class="opacity-90">See your current and past medicines, open your reports and print prescriptions anytime.</p>
+      </div>
+      <ul class="list-unstyled d-grid gap-3 my-4">
+        <li class="d-flex gap-3 align-items-center"><span class="feature-dot"><i class="bi bi-capsule" aria-hidden="true"></i></span>Active and past prescriptions</li>
+        <li class="d-flex gap-3 align-items-center"><span class="feature-dot"><i class="bi bi-file-earmark-medical" aria-hidden="true"></i></span>Your lab reports and summaries</li>
+        <li class="d-flex gap-3 align-items-center"><span class="feature-dot"><i class="bi bi-lock" aria-hidden="true"></i></span>Only you can see your records</li>
+      </ul>
+      <p class="small opacity-75 mb-0">Demo patient: <span class="mono">asha</span> &bull; password <span class="mono">Demo@1234</span></p>
+    </div>
+
+    <div class="col-lg-7 p-4 p-md-5">
+      <h2 class="h3 fw-bold mb-1">Patient sign in</h2>
+      <p class="text-body-secondary mb-4">No account yet? <a href="/signup">Sign up free in seconds</a> &bull; Staff? <a href="/login">Staff login</a></p>
+
+      {% with source='patient', label='Continue with Google' %}{% include '_google_button.html' %}{% endwith %}
+      <div class="divider-text my-4">or with email</div>
+
+      <form method="post" action="/patient-login" novalidate>
+        <input type="hidden" name="csrf" value="{{ csrf() }}">
+        <div class="mb-3">
+          <label for="username" class="form-label">Email or username</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-envelope" aria-hidden="true"></i></span>
+            <input id="username" name="username" class="form-control" value="{{ form.username or '' }}" autocomplete="username" required autofocus>
+          </div>
+        </div>
+        <div class="mb-4">
+          <label for="password" class="form-label">Password</label>
+          <div class="input-group">
+            <input id="password" name="password" type="password" class="form-control" autocomplete="current-password" required>
+            <button type="button" class="btn btn-outline-secondary password-toggle-btn" data-target="password" aria-label="Show password"><i class="bi bi-eye" aria-hidden="true"></i></button>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-gradient w-100 rounded-pill py-2 fw-semibold">Open my portal <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i></button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

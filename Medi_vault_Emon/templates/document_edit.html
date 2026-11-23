@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Edit Document - Medi Vault{% endblock %}
+
+{% block content %}
+<a href="/patients/{{ d.patient_id }}" class="btn btn-outline-secondary btn-sm rounded-pill mb-3"><i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Back to patient record</a>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="mv-card fade-up">
+      <div class="mv-card-header">
+        <div>
+          <h1 class="h4 fw-bold mb-1"><i class="bi bi-pencil-square text-primary me-2" aria-hidden="true"></i>Edit document</h1>
+          <p class="text-body-secondary small mb-0">Patient MRN: <span class="mrn">{{ patient.mrn }}</span> &bull; Current version: <span class="chip chip-version">v{{ d.version or 1 }}</span></p>
+        </div>
+        <a href="/documents/{{ d.id }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary rounded-pill"><i class="bi bi-eye me-1" aria-hidden="true"></i>View current file</a>
+      </div>
+      <form method="post" enctype="multipart/form-data" action="/documents/{{ d.id }}/edit" class="mv-card-body">
+        <input type="hidden" name="csrf" value="{{ csrf() }}">
+        <div class="row g-3">
+          <div class="col-md-8">
+            <label for="title" class="form-label">Document title</label>
+            <input id="title" name="title" class="form-control" value="{{ d.title }}" maxlength="100" required>
+          </div>
+          <div class="col-md-4">
+            <label for="doc_type" class="form-label">Document type</label>
+            <select id="doc_type" name="doc_type" class="form-select">
+              {% for t in ['Lab report', 'Prescription', 'Discharge summary', 'Scan', 'Other'] %}
+              <option value="{{ t }}" {% if d.doc_type == t %}selected{% endif %}>{{ t }}</option>
+              {% endfor %}
+              {% if d.doc_type not in ['Lab report', 'Prescription', 'Discharge summary', 'Scan', 'Other'] %}
+              <option value="{{ d.doc_type }}" selected>{{ d.doc_type }}</option>
+              {% endif %}
+            </select>
+          </div>
+          <div class="col-12">
+            <label for="notes" class="form-label">Clinical notes</label>
+            <textarea id="notes" name="notes" rows="4" class="form-control" placeholder="Add doctor or clinical notes here..." aria-describedby="notes-hint">{{ d.notes or '' }}</textarea>
+            <div class="form-text" id="notes-hint">Notes are saved in the version history and hidden from the patient portal.</div>
+          </div>
+          <div class="col-12">
+            <span class="form-label d-block" id="edit-file-label">Replace file with a new version (optional)</span>
+            <div class="dropzone" id="edit-dropzone" data-max-bytes="5242880">
+              <input type="file" name="file" accept=".pdf,.png,.jpg,.jpeg" aria-labelledby="edit-file-label">
+              <i class="bi bi-arrow-repeat dz-icon" aria-hidden="true"></i>
+              <p class="fw-semibold mb-1">Drop a new file to create version v{{ (d.version or 1) + 1 }}</p>
+              <small class="text-body-secondary">Leave empty to update details only. PDF, PNG, JPG (max 5 MB)</small>
+              <div class="dropzone-preview" aria-live="polite"></div>
+            </div>
+          </div>
+        </div>
+        <div class="d-flex gap-2 mt-4">
+          <button type="submit" class="btn btn-gradient rounded-pill px-4"><i class="bi bi-save me-1" aria-hidden="true"></i>Save changes</button>
+          <a href="/patients/{{ d.patient_id }}" class="btn btn-outline-secondary rounded-pill px-4">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="mv-card fade-up h-100">
+      <div class="mv-card-header"><div><h2 class="h5 fw-bold mb-0"><i class="bi bi-clock-history text-primary me-2" aria-hidden="true"></i>Version history</h2><p class="small text-body-secondary mb-0">Preserved snapshots of every change</p></div></div>
+      <div class="mv-card-body">
+        <ol class="list-unstyled d-grid gap-3 mb-0">
+          {% for h in history %}
+          <li class="d-flex gap-3">
+            <span class="timeline-dot mt-2 flex-shrink-0" aria-hidden="true"></span>
+            <div class="flex-grow-1 border-bottom pb-3">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                <span class="chip chip-version">v{{ h.version }}</span>
+                <span class="chip {% if h.change_type == 'new_version' %}chip-ok{% elif h.change_type == 'created' %}chip-type{% else %}chip-pending{% endif %}">{{ h.change_type|replace('_', ' ') }}</span>
+                {% if h.stored_name %}
+                <a href="/documents/history/{{ h.id }}" target="_blank" rel="noopener" class="btn btn-sm btn-link ms-auto p-0">Open snapshot</a>
+                {% endif %}
+              </div>
+              <div class="fw-semibold">{{ h.title }} <span class="text-body-secondary fw-normal small">&bull; {{ h.doc_type }}</span></div>
+              {% if h.notes %}<div class="small text-body-secondary">{{ h.notes }}</div>{% endif %}
+              <div class="small text-body-secondary"><i class="bi bi-person me-1" aria-hidden="true"></i>{{ h.changed_by }} &bull; {{ h.changed_at }}</div>
+            </div>
+          </li>
+          {% else %}
+          <li class="empty-state"><i class="bi bi-clock" aria-hidden="true"></i>No prior version history recorded.</li>
+          {% endfor %}
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

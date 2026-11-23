@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Sign Up - Medi Vault{% endblock %}
+
+{% macro field_error(name) -%}
+{% if errors.get(name) %}<div class="invalid-feedback d-block" id="{{ name }}-error">{{ errors[name] }}</div>{% endif %}
+{%- endmacro %}
+
+{% block content %}
+{% set is_staff = form.signup_type == 'staff' %}
+<div class="row justify-content-center">
+  <div class="col-lg-9 col-xl-8">
+    <div class="text-center mb-4 fade-up">
+      <h1 class="page-title display-6">Create your <span class="text-gradient">Medi Vault</span> account</h1>
+      <p class="text-body-secondary mb-0">Patients get instant access &mdash; no waiting for approval.</p>
+    </div>
+
+    <div class="mv-card p-4 p-md-5 fade-up">
+      {% with source='signup', label='Sign up with Google' %}{% include '_google_button.html' %}{% endwith %}
+      <div class="divider-text my-4">or sign up with email</div>
+
+      <form method="post" action="/signup" novalidate id="signup-form">
+        <input type="hidden" name="csrf" value="{{ csrf() }}">
+
+        <fieldset class="mb-4">
+          <legend class="form-label">I am a...</legend>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="type-option d-block">
+                <input class="visually-hidden" type="radio" name="signup_type" id="signup-type-patient" value="patient" {% if not is_staff %}checked{% endif %}>
+                <span class="type-card d-block">
+                  <span class="d-flex align-items-center gap-2 mb-1">
+                    <i class="bi bi-heart-pulse-fill type-icon text-danger" aria-hidden="true"></i>
+                    <strong>Patient</strong>
+                    <span class="chip chip-ok ms-auto">Instant</span>
+                  </span>
+                  <small class="text-body-secondary">Account is active immediately with your own health record.</small>
+                </span>
+              </label>
+            </div>
+            <div class="col-md-6">
+              <label class="type-option d-block">
+                <input class="visually-hidden" type="radio" name="signup_type" id="signup-type-staff" value="staff" {% if is_staff %}checked{% endif %}>
+                <span class="type-card d-block">
+                  <span class="d-flex align-items-center gap-2 mb-1">
+                    <i class="bi bi-hospital-fill type-icon text-primary" aria-hidden="true"></i>
+                    <strong>Hospital staff</strong>
+                    <span class="chip chip-pending ms-auto">Role review</span>
+                  </span>
+                  <small class="text-body-secondary">Clinical access to patient data needs an auditor to assign your role.</small>
+                </span>
+              </label>
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label for="full_name" class="form-label">Full name</label>
+            <input id="full_name" name="full_name" class="form-control {% if errors.full_name %}is-invalid{% endif %}" value="{{ form.full_name or '' }}" autocomplete="name" maxlength="100" required {% if errors.full_name %}aria-describedby="full_name-error"{% endif %}>
+            {{ field_error('full_name') }}
+          </div>
+          <div class="col-md-6">
+            <label for="email" class="form-label">Email</label>
+            <input id="email" name="email" type="email" class="form-control {% if errors.email %}is-invalid{% endif %}" value="{{ form.email or '' }}" autocomplete="email" maxlength="254" required {% if errors.email %}aria-describedby="email-error"{% endif %}>
+            {{ field_error('email') }}
+          </div>
+
+          <div class="col-md-6" id="patient-dob-group">
+            <label for="dob" class="form-label">Date of birth</label>
+            <input id="dob" name="dob" type="date" class="form-control {% if errors.dob %}is-invalid{% endif %}" value="{{ form.dob or '' }}" max="{{ today }}" {% if errors.dob %}aria-describedby="dob-error"{% endif %}>
+            {{ field_error('dob') }}
+          </div>
+          <div class="col-md-6">
+            <label for="username" class="form-label">Username <span class="text-body-secondary fw-normal">(optional)</span></label>
+            <input id="username" name="username" class="form-control {% if errors.username %}is-invalid{% endif %}" value="{{ form.username or '' }}" autocomplete="username" maxlength="30" placeholder="auto from email" aria-describedby="username-hint{% if errors.username %} username-error{% endif %}">
+            <div class="form-text" id="username-hint">3-30 lowercase letters, digits or underscores.</div>
+            {{ field_error('username') }}
+          </div>
+
+          <div class="col-md-6">
+            <label for="password" class="form-label">Password</label>
+            <div class="input-group">
+              <input id="password" name="password" type="password" class="form-control {% if errors.password %}is-invalid{% endif %}" autocomplete="new-password" minlength="10" required aria-describedby="password-strength-text{% if errors.password %} password-error{% endif %}">
+              <button type="button" class="btn btn-outline-secondary password-toggle-btn" data-target="password" aria-label="Show password"><i class="bi bi-eye" aria-hidden="true"></i></button>
+            </div>
+            <div class="strength-bar mt-2" aria-hidden="true"><span id="password-strength-bar"></span></div>
+            <div class="form-text" id="password-strength-text" aria-live="polite">At least 10 characters.</div>
+            {{ field_error('password') }}
+          </div>
+          <div class="col-md-6">
+            <label for="confirm_password" class="form-label">Confirm password</label>
+            <input id="confirm_password" name="confirm_password" type="password" class="form-control {% if errors.confirm_password %}is-invalid{% endif %}" autocomplete="new-password" required {% if errors.confirm_password %}aria-describedby="confirm_password-error"{% endif %}>
+            <div class="form-text" id="password-match-text" aria-live="polite"></div>
+            {{ field_error('confirm_password') }}
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-gradient w-100 rounded-pill py-2 fw-semibold mt-4" id="signup-submit">
+          <i class="bi bi-person-check me-1" aria-hidden="true"></i><span id="signup-submit-label">{% if is_staff %}Request staff account{% else %}Create my account{% endif %}</span>
+        </button>
+      </form>
+
+      <p class="text-center text-body-secondary mt-4 mb-0">Already have an account? <a href="/patient-login">Patient login</a> &bull; <a href="/login">Staff login</a></p>
+    </div>
+  </div>
+</div>
+{% endblock %}

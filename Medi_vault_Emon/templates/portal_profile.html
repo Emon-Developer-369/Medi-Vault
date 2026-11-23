@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}My Profile - Medi Vault{% endblock %}
+
+{% block content %}
+<a href="/portal" class="btn btn-outline-secondary btn-sm rounded-pill mb-3"><i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Back to portal</a>
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="mv-card fade-up">
+      <div class="mv-card-header">
+        <div>
+          <h1 class="h4 fw-bold mb-1"><i class="bi bi-person-badge text-primary me-2" aria-hidden="true"></i>My profile</h1>
+          <p class="small text-body-secondary mb-0">MRN <span class="mrn">{{ patient.mrn }}</span></p>
+        </div>
+      </div>
+      <div class="mv-card-body">
+        <dl class="row mb-4">
+          <dt class="col-sm-4 text-body-secondary fw-normal">Name</dt><dd class="col-sm-8 fw-semibold">{{ patient.name }}</dd>
+          <dt class="col-sm-4 text-body-secondary fw-normal">Email</dt><dd class="col-sm-8">{{ user.email or '-' }}</dd>
+          <dt class="col-sm-4 text-body-secondary fw-normal">Username</dt><dd class="col-sm-8 mono">{{ user.username }}</dd>
+          <dt class="col-sm-4 text-body-secondary fw-normal mb-0">Date of birth</dt><dd class="col-sm-8 mb-0">{{ patient.dob or 'Not provided' }}</dd>
+        </dl>
+
+        {% if not patient.dob %}
+        <form method="post" action="/portal/profile" novalidate>
+          <input type="hidden" name="csrf" value="{{ csrf() }}">
+          <label for="dob" class="form-label">Add your date of birth</label>
+          <input id="dob" name="dob" type="date" class="form-control {% if errors.dob %}is-invalid{% endif %}" max="{{ today }}" required>
+          {% if errors.dob %}<div class="invalid-feedback d-block">{{ errors.dob }}</div>{% endif %}
+          <div class="d-flex gap-2 mt-3">
+            <button type="submit" class="btn btn-gradient rounded-pill px-4">Save</button>
+            <a href="/portal" class="btn btn-outline-secondary rounded-pill px-4">Skip for now</a>
+          </div>
+        </form>
+        {% else %}
+        <p class="small text-body-secondary mb-0"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>Need to correct your details? Ask hospital staff to update your record.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

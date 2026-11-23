@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Print Prescription - Medi Vault{% endblock %}
+
+{% block content %}
+<div class="no-print d-flex justify-content-between align-items-center mb-3">
+  {% if session.role == 'patient' %}
+  <a href="/portal" class="btn btn-outline-secondary btn-sm rounded-pill"><i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Back to portal</a>
+  {% else %}
+  <a href="/patients/{{ patient.id }}" class="btn btn-outline-secondary btn-sm rounded-pill"><i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Back to patient</a>
+  {% endif %}
+  <button type="button" class="btn btn-gradient rounded-pill px-4" id="print-btn"><i class="bi bi-printer me-1" aria-hidden="true"></i>Print prescription</button>
+</div>
+
+<article class="mv-card rx-print mx-auto p-4 p-md-5" style="max-width: 720px;">
+  <header class="d-flex justify-content-between align-items-start border-bottom border-2 pb-3 mb-4">
+    <div>
+      <h1 class="h3 fw-bold mb-0 text-gradient">Medi Vault Clinic</h1>
+      <p class="text-body-secondary small mb-0">Medical Health &amp; Records System</p>
+    </div>
+    <div class="text-end">
+      <span class="chip chip-{{ rx.status }}">{{ rx.status|upper }}</span>
+      <div class="small text-body-secondary mt-1">Rx #{{ rx.id }}</div>
+    </div>
+  </header>
+
+  <dl class="row small mb-4 p-3 rounded-3" style="background: var(--mv-gradient-soft);">
+    <dt class="col-sm-4 text-body-secondary fw-normal">Patient name</dt><dd class="col-sm-8 fw-bold">{{ patient.name }}</dd>
+    <dt class="col-sm-4 text-body-secondary fw-normal">MRN</dt><dd class="col-sm-8 mrn">{{ patient.mrn }}</dd>
+    <dt class="col-sm-4 text-body-secondary fw-normal">Date of birth</dt><dd class="col-sm-8">{{ patient.dob or '-' }}</dd>
+    <dt class="col-sm-4 text-body-secondary fw-normal mb-0">Prescription date</dt><dd class="col-sm-8 mb-0">{{ rx.prescribed_at[:10] }}</dd>
+  </dl>
+
+  <h2 class="h4 fw-bold d-flex align-items-baseline gap-2"><span class="fst-italic" style="font-family: serif; color: var(--mv-indigo);">Rx</span>{{ rx.medicine }}</h2>
+  <table class="table table-sm mt-2">
+    <tbody>
+      <tr><th scope="row" class="text-body-secondary fw-normal" style="width: 160px;">Dosage</th><td class="fw-semibold">{{ rx.dosage }}</td></tr>
+      <tr><th scope="row" class="text-body-secondary fw-normal">Frequency</th><td>{{ rx.frequency }}</td></tr>
+      <tr><th scope="row" class="text-body-secondary fw-normal">Duration</th><td>{{ rx.duration }}</td></tr>
+      {% if rx.instructions %}<tr><th scope="row" class="text-body-secondary fw-normal">Instructions</th><td><em>{{ rx.instructions }}</em></td></tr>{% endif %}
+      {% if rx.status == 'stopped' %}
+      <tr><th scope="row" class="text-danger fw-normal">Discontinued</th><td class="text-body-secondary">Stopped on {{ rx.stopped_at[:10] if rx.stopped_at else '-' }} by {{ rx.stopped_by }}{% if rx.stop_reason %}: {{ rx.stop_reason }}{% endif %}</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  <footer class="d-flex justify-content-between align-items-end border-top pt-3 mt-5 small text-body-secondary" style="border-top-style: dashed !important;">
+    <div>Prescribed by: <strong>Dr. {{ rx.prescribed_by }}</strong><br>Date: {{ rx.prescribed_at }}</div>
+    <div class="text-end"><div class="border-bottom border-secondary mb-1" style="width: 150px;"></div>Doctor signature</div>
+  </footer>
+</article>
+{% endblock %}

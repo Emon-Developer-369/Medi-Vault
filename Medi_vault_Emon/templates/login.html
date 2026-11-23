@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Staff Login - Medi Vault{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div class="row g-0 w-100 mv-card overflow-hidden fade-up">
+    <div class="col-lg-5 auth-side p-4 p-md-5 d-flex flex-column justify-content-between">
+      <div>
+        <span class="badge rounded-pill text-bg-light text-primary mb-3 px-3 py-2"><i class="bi bi-hospital me-1" aria-hidden="true"></i>Hospital staff</span>
+        <h1 class="h2 fw-bold">Welcome back to Medi Vault</h1>
+        <p class="opacity-90">Clerks, doctors and auditors sign in here. Your role decides what you can see.</p>
+      </div>
+      <ul class="list-unstyled d-grid gap-3 my-4">
+        <li class="d-flex gap-3 align-items-center"><span class="feature-dot"><i class="bi bi-person-vcard" aria-hidden="true"></i></span>Clerks register patients and upload reports</li>
+        <li class="d-flex gap-3 align-items-center"><span class="feature-dot"><i class="bi bi-clipboard2-pulse" aria-hidden="true"></i></span>Doctors edit notes and prescribe</li>
+        <li class="d-flex gap-3 align-items-center"><span class="feature-dot"><i class="bi bi-shield-check" aria-hidden="true"></i></span>Auditors review logs and manage users</li>
+      </ul>
+      <p class="small opacity-75 mb-0">Demo logins: <span class="mono">clerk</span>, <span class="mono">doctor</span>, <span class="mono">auditor</span> &bull; password <span class="mono">Demo@1234</span></p>
+    </div>
+
+    <div class="col-lg-7 p-4 p-md-5">
+      <h2 class="h3 fw-bold mb-1">Staff sign in</h2>
+      <p class="text-body-secondary mb-4">Use your username or email. Are you a patient? <a href="/patient-login">Patient login</a></p>
+
+      {% with source='staff', label='Sign in with Google' %}{% include '_google_button.html' %}{% endwith %}
+      <div class="divider-text my-4">or with password</div>
+
+      <form method="post" action="/login" novalidate class="needs-validation">
+        <input type="hidden" name="csrf" value="{{ csrf() }}">
+        <div class="mb-3">
+          <label for="username" class="form-label">Username or email</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-person" aria-hidden="true"></i></span>
+            <input id="username" name="username" class="form-control" value="{{ form.username or '' }}" autocomplete="username" required autofocus>
+          </div>
+        </div>
+        <div class="mb-4">
+          <label for="password" class="form-label">Password</label>
+          <div class="input-group">
+            <input id="password" name="password" type="password" class="form-control" autocomplete="current-password" required>
+            <button type="button" class="btn btn-outline-secondary password-toggle-btn" data-target="password" aria-label="Show password"><i class="bi bi-eye" aria-hidden="true"></i></button>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-gradient w-100 rounded-pill py-2 fw-semibold">Sign in <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i></button>
+      </form>
+
+      <p class="text-center text-body-secondary mt-4 mb-0">New hospital staff? <a href="/signup?type=staff">Request a staff account</a></p>
+    </div>
+  </div>
+</div>
+{% endblock %}

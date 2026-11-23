@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} - Medi Vault{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="mv-card p-4 p-md-5 text-center fade-up">
+      <span class="feature-icon stat-green mb-3" style="width: 4rem; height: 4rem; font-size: 1.8rem;"><i class="bi bi-check2-all" aria-hidden="true"></i></span>
+      <h1 class="h3 fw-bold">{{ title }}</h1>
+      <p class="text-body-secondary">{{ subtitle }}</p>
+
+      <div class="text-start mt-4">
+        <span class="form-label d-block">Username</span>
+        <div class="secret-box mono mb-3">{{ username }}</div>
+        <span class="form-label d-block">Temporary password <span class="text-danger small fw-normal">(shown only once)</span></span>
+        <div class="d-flex gap-2 align-items-stretch">
+          <div class="secret-box mono flex-grow-1" id="temp-password">{{ temp_password }}</div>
+          <button type="button" class="btn btn-outline-primary rounded-3 copy-btn" data-copy="{{ temp_password }}"><i class="bi bi-clipboard me-1" aria-hidden="true"></i><span>Copy</span></button>
+        </div>
+      </div>
+      <div class="alert alert-warning rounded-4 border-0 mt-4 text-start small" role="note">
+        <i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true"></i>Share this password securely. The user must set a new password at first login. It is never stored in plain text or written to the audit log.
+      </div>
+      <a href="/users?tab=active" class="btn btn-gradient rounded-pill px-4">Back to user management</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

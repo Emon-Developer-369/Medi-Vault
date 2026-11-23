@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Patients - Medi Vault{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4 fade-up">
+  <div>
+    <span class="eyebrow">{{ 'CLINICAL WORKSPACE' if session.role == 'doctor' else 'REGISTRATION DESK' }}</span><h1 class="page-title h2 mb-1">Welcome, <span class="text-gradient">{{ session.u }}</span></h1>
+    <p class="text-body-secondary mb-0">{{ 'Review patient records, medical documents and prescriptions.' if session.role=='doctor' else 'Register patients, organize documents and look up medical records.' }}</p>
+  </div>
+  {% if 'register' in current_perms %}
+  <a href="/patients/new" class="btn btn-gradient rounded-pill px-4" id="btn-register-patient"><i class="bi bi-person-plus me-1" aria-hidden="true"></i>Register patient</a>
+  {% endif %}
+</div>
+
+<section class="row g-3 mb-4" aria-label="Summary">
+  <div class="col-6 col-lg-3">
+    <div class="stat-card stat-cyan"><div class="d-flex justify-content-between"><div><div class="stat-value" data-count="{{ stats.patients }}">{{ stats.patients }}</div><div class="stat-label">Patients</div></div><i class="bi bi-people-fill stat-icon" aria-hidden="true"></i></div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card stat-indigo"><div class="d-flex justify-content-between"><div><div class="stat-value" data-count="{{ stats.documents }}">{{ stats.documents }}</div><div class="stat-label">Documents</div></div><i class="bi bi-file-earmark-medical-fill stat-icon" aria-hidden="true"></i></div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card stat-pink"><div class="d-flex justify-content-between"><div><div class="stat-value" data-count="{{ stats.active_rx }}">{{ stats.active_rx }}</div><div class="stat-label">Active prescriptions</div></div><i class="bi bi-capsule-pill stat-icon" aria-hidden="true"></i></div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="stat-card stat-amber"><div class="d-flex justify-content-between"><div><div class="stat-value" data-count="{{ stats.today }}">{{ stats.today }}</div><div class="stat-label">New today</div></div><i class="bi bi-calendar-heart-fill stat-icon" aria-hidden="true"></i></div></div>
+  </div>
+</section>
+
+<div class="mv-card fade-up">
+  <div class="mv-card-header">
+    <h2 class="h5 fw-bold mb-0"><i class="bi bi-search-heart me-2 text-primary" aria-hidden="true"></i>Patient directory</h2>
+    <form method="get" action="/patients" class="d-flex gap-2 flex-grow-1 justify-content-end" role="search" style="max-width: 520px;">
+      <label for="client-patient-filter" class="visually-hidden">Search patients by name or MRN</label>
+      <div class="input-group">
+        <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
+        <input id="client-patient-filter" name="q" value="{{ q }}" class="form-control" placeholder="Type a name or MRN to filter live..." autocomplete="off">
+      </div>
+      <button type="submit" class="btn btn-outline-primary rounded-pill px-3 no-loading">Search</button>
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table mv-table" id="patients-table">
+      <thead>
+        <tr>
+          <th scope="col">MRN</th>
+          <th scope="col">Name</th>
+          <th scope="col">Date of birth</th>
+          <th scope="col">Registered</th>
+          <th scope="col">Documents</th>
+          <th scope="col" class="text-end">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td><span class="mrn">{{ r.mrn }}</span></td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <span class="avatar" style="background: var(--mv-gradient-soft);" aria-hidden="true">{{ r.name[:1]|upper }}</span>
+              <strong>{{ r.name }}</strong>
+            </div>
+          </td>
+          <td>{{ r.dob or '-' }}</td>
+          <td>{{ r.registered_on or (r.created_at[:10] if r.created_at else '-') }}</td>
+          <td><span class="chip chip-version"><i class="bi bi-files" aria-hidden="true"></i>{{ r.doc_count }}</span></td>
+          <td class="text-end"><a href="/patients/{{ r.id }}" class="btn btn-sm btn-gradient rounded-pill px-3">Open <i class="bi bi-chevron-right" aria-hidden="true"></i></a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div id="patient-filter-empty" class="empty-state" style="display: {% if rows|length == 0 %}block{% else %}none{% endif %};">
+    <i class="bi bi-person-x" aria-hidden="true"></i>
+    <p class="mb-0">No patients match your search.</p>
+  </div>
+</div>
+{% endblock %}

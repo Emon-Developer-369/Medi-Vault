@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}{{ p.name }} - Medi Vault{% endblock %}
+
+{% block content %}
+<a href="/patients" class="btn btn-outline-secondary btn-sm rounded-pill mb-3"><i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Back to patients</a>
+
+<section class="hero p-4 p-md-4 mb-4 fade-up">
+  <div class="d-flex flex-wrap align-items-center gap-3">
+    <span class="avatar" style="width: 3.5rem; height: 3.5rem; font-size: 1.3rem;" aria-hidden="true">{{ p.name[:1]|upper }}</span>
+    <div class="flex-grow-1">
+      <h1 class="h3 fw-bold mb-1">{{ p.name }}</h1>
+      <div class="d-flex flex-wrap gap-3 small opacity-90">
+        <span><i class="bi bi-upc-scan me-1" aria-hidden="true"></i>MRN: <strong class="mono">{{ p.mrn }}</strong></span>
+        <span><i class="bi bi-cake2 me-1" aria-hidden="true"></i>Date of Birth: <strong>{{ p.dob or 'Not provided' }}</strong></span>
+        <span><i class="bi bi-calendar-check me-1" aria-hidden="true"></i>Registered On: <strong>{{ p.registered_on or p.created_at[:10] }}</strong></span>
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      <span class="badge rounded-pill text-bg-light px-3 py-2"><i class="bi bi-files me-1" aria-hidden="true"></i>{{ docs|length }} documents</span>
+      {% if 'prescribe' in current_perms %}
+      <span class="badge rounded-pill text-bg-light px-3 py-2"><i class="bi bi-capsule me-1" aria-hidden="true"></i>{{ prescriptions|selectattr('status', 'equalto', 'active')|list|length }} active Rx</span>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<ul class="nav mv-tabs mb-3" id="patientTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="docs-tab" data-bs-toggle="tab" data-bs-target="#docs-pane" type="button" role="tab" aria-controls="docs-pane" aria-selected="true"><i class="bi bi-folder2-open me-1" aria-hidden="true"></i>Documents <span class="badge rounded-pill ms-1">{{ docs|length }}</span></button>
+  </li>
+  {% if 'prescribe' in current_perms %}
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="rx-tab" data-bs-toggle="tab" data-bs-target="#rx-pane" type="button" role="tab" aria-controls="rx-pane" aria-selected="false"><i class="bi bi-capsule me-1" aria-hidden="true"></i>Prescriptions <span class="badge rounded-pill ms-1">{{ prescriptions|length }}</span></button>
+  </li>
+  {% endif %}
+  {% if 'upload' in current_perms %}
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload-pane" type="button" role="tab" aria-controls="upload-pane" aria-selected="false"><i class="bi bi-cloud-arrow-up me-1" aria-hidden="true"></i>Upload</button>
+  </li>
+  {% endif %}
+</ul>
+
+<div class="tab-content">
+  <div class="tab-pane fade show active" id="docs-pane" role="tabpanel" aria-labelledby="docs-tab" tabindex="0">
+    <div class="mv-card">
+      <div class="mv-card-header"><h2 class="h5 fw-bold mb-0">Documents &amp; Reports</h2></div>
+      <div class="table-responsive">
+        <table class="table mv-table">
+          <thead>
+            <tr><th scope="col">Title</th><th scope="col">Type</th><th scope="col">Version</th><th scope="col">Uploaded by</th><th scope="col">Uploaded at</th><th scope="col">Notes</th><th scope="col" class="text-end">Actions</th></tr>
+          </thead>
+          <tbody>
+            {% for d in docs %}
+            <tr>
+              <td><i class="bi {% if d.stored_name.endswith('.pdf') %}bi-file-earmark-pdf-fill text-danger{% else %}bi-file-earmark-image-fill text-info{% endif %} me-1" aria-hidden="true"></i><strong>{{ d.title }}</strong></td>
+              <td><span class="chip chip-type">{{ d.doc_type }}</span></td>
+              <td><span class="chip chip-version">v{{ d.version or 1 }}</span></td>
+              <td>{{ d.uploaded_by }}</td>
+              <td class="small text-nowrap">{{ d.created_at }}</td>
+              <td class="small text-body-secondary text-truncate" style="max-width: 200px;" title="{{ d.notes or '' }}">{{ d.notes or '-' }}</td>
+              <td class="text-end text-nowrap">
+                <a href="/documents/{{ d.id }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary rounded-pill"><i class="bi bi-box-arrow-up-right me-1" aria-hidden="true"></i>Open</a>
+                {% if 'edit_doc' in current_perms %}
+                <a href="/documents/{{ d.id }}/edit" class="btn btn-sm btn-gradient rounded-pill"><i class="bi bi-pencil me-1" aria-hidden="true"></i>Edit</a>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7"><div class="empty-state"><i class="bi bi-folder-x" aria-hidden="true"></i>No documents uploaded yet for this patient.</div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  {% if 'prescribe' in current_perms %}
+  <div class="tab-pane fade" id="rx-pane" role="tabpanel" aria-labelledby="rx-tab" tabindex="0">
+    <div class="mv-card">
+      <div class="mv-card-header">
+        <div><h2 class="h5 fw-bold mb-0">Prescriptions</h2><p class="small text-body-secondary mb-0">Active medications and medication history</p></div>
+        <a href="/patients/{{ p.id }}/prescriptions/new" class="btn btn-gradient btn-sm rounded-pill px-3"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>+ Add prescription</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table mv-table">
+          <thead>
+            <tr><th scope="col">Medicine</th><th scope="col">Dosage</th><th scope="col">Frequency</th><th scope="col">Duration</th><th scope="col">Status</th><th scope="col">Prescribed</th><th scope="col">Instructions / stop reason</th><th scope="col" class="text-end">Actions</th></tr>
+          </thead>
+          <tbody>
+            {% for rx in prescriptions %}
+            <tr>
+              <td><i class="bi bi-capsule-pill text-danger me-1" aria-hidden="true"></i><strong>{{ rx.medicine }}</strong></td>
+              <td>{{ rx.dosage }}</td>
+              <td>{{ rx.frequency }}</td>
+              <td>{{ rx.duration }}</td>
+              <td><span class="chip chip-{{ rx.status }}">{{ rx.status }}</span></td>
+              <td class="small">Dr. {{ rx.prescribed_by }}<br><span class="text-body-secondary">{{ rx.prescribed_at[:10] }}</span></td>
+              <td class="small text-body-secondary" style="max-width: 220px;">
+                {% if rx.instructions %}<div>{{ rx.instructions }}</div>{% endif %}
+                {% if rx.status == 'stopped' %}<div class="text-danger">Stopped ({{ rx.stopped_at[:10] if rx.stopped_at else '' }}){% if rx.stop_reason %}: {{ rx.stop_reason }}{% endif %}</div>{% endif %}
+              </td>
+              <td class="text-end text-nowrap">
+                <a href="/prescriptions/{{ rx.id }}/print" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary rounded-pill"><i class="bi bi-printer me-1" aria-hidden="true"></i>Print</a>
+                {% if rx.status == 'active' %}
+                <form method="post" action="/prescriptions/{{ rx.id }}/stop" class="d-inline m-0">
+                  <input type="hidden" name="csrf" value="{{ csrf() }}">
+                  <button type="button" class="btn btn-sm btn-outline-danger rounded-pill"
+                          data-confirm="Stop prescription for '{{ rx.medicine }}'?"
+                          data-confirm-title="Stop Prescription"
+                          data-has-reason="true"><i class="bi bi-stop-circle me-1" aria-hidden="true"></i>Stop</button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="8"><div class="empty-state"><i class="bi bi-capsule" aria-hidden="true"></i>No prescriptions recorded for this patient.</div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if 'upload' in current_perms %}
+  <div class="tab-pane fade" id="upload-pane" role="tabpanel" aria-labelledby="upload-tab" tabindex="0">
+    <div class="mv-card">
+      <div class="mv-card-header"><div><h2 class="h5 fw-bold mb-0">Upload document</h2><p class="small text-body-secondary mb-0">PDF, PNG or JPG only &bull; max 5 MB &bull; real file signature verified</p></div></div>
+      <form method="post" enctype="multipart/form-data" action="/patients/{{ p.id }}/upload" class="mv-card-body">
+        <input type="hidden" name="csrf" value="{{ csrf() }}">
+        <div class="row g-3">
+          <div class="col-md-8">
+            <label for="title" class="form-label">Document title</label>
+            <input id="title" name="title" class="form-control" placeholder="e.g. Complete Blood Count Report" maxlength="100" required>
+          </div>
+          <div class="col-md-4">
+            <label for="doc_type" class="form-label">Document type</label>
+            <select id="doc_type" name="doc_type" class="form-select">
+              <option value="Lab report">Lab report</option>
+              <option value="Prescription">Prescription</option>
+              <option value="Discharge summary">Discharge summary</option>
+              <option value="Scan">Scan</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <span class="form-label d-block" id="upload-file-label">File</span>
+            <div class="dropzone" id="upload-dropzone" data-max-bytes="5242880">
+              <input type="file" name="file" accept=".pdf,.png,.jpg,.jpeg" required aria-labelledby="upload-file-label">
+              <i class="bi bi-cloud-arrow-up-fill dz-icon" aria-hidden="true"></i>
+              <p class="fw-semibold mb-1">Drag and drop a file here, or click to browse</p>
+              <small class="text-body-secondary">Supports PDF, PNG, JPG (maximum 5 MB)</small>
+              <div class="dropzone-preview" aria-live="polite"></div>
+            </div>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-gradient rounded-pill px-4 mt-4"><i class="bi bi-upload me-1" aria-hidden="true"></i>Upload document</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

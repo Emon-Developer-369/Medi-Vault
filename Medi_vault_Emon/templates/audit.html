@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Audit Log - Medi Vault{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4 fade-up">
+  <div>
+    <span class="eyebrow">GOVERNANCE WORKSPACE</span><h1 class="page-title h2 mb-1"><span class="text-gradient">System audit log</span></h1>
+    <p class="text-body-secondary mb-0">Append-only trail of access events, document actions and security checks (latest 200). No patient names or document titles are recorded.</p>
+  </div>
+  <a href="/users" class="btn btn-gradient rounded-pill px-4"><i class="bi bi-person-gear me-1" aria-hidden="true"></i>Manage users</a>
+</div>
+
+<section class="row g-3 mb-4" aria-label="Outcome summary">
+  <div class="col-6 col-lg"><div class="stat-card stat-green"><div class="stat-value" data-count="{{ outcome_counts.ok }}">{{ outcome_counts.ok }}</div><div class="stat-label">Successful actions</div></div></div>
+  <div class="col-6 col-lg"><div class="stat-card stat-pink"><div class="stat-value" data-count="{{ outcome_counts.failed }}">{{ outcome_counts.failed }}</div><div class="stat-label">Failed logins</div></div></div>
+  <div class="col-6 col-lg"><div class="stat-card stat-indigo"><div class="stat-value" data-count="{{ outcome_counts.denied }}">{{ outcome_counts.denied }}</div><div class="stat-label">Denied (403)</div></div></div>
+  <div class="col-6 col-lg"><div class="stat-card stat-amber"><div class="stat-value" data-count="{{ outcome_counts.rejected }}">{{ outcome_counts.rejected }}</div><div class="stat-label">Rejected uploads</div></div></div>
+  <div class="col-12 col-lg"><div class="stat-card stat-cyan"><div class="stat-value" data-count="{{ outcome_counts.blocked }}">{{ outcome_counts.blocked }}</div><div class="stat-label">Blocked</div></div></div>
+</section>
+
+<div class="mv-card fade-up">
+  <div class="mv-card-body border-bottom" style="border-color: var(--mv-border) !important;">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label for="audit-filter-user" class="form-label">Filter by user</label>
+        <div class="input-group"><span class="input-group-text"><i class="bi bi-person" aria-hidden="true"></i></span><input id="audit-filter-user" class="form-control" placeholder="Type a username..." autocomplete="off"></div>
+      </div>
+      <div class="col-md-6">
+        <label for="audit-filter-action" class="form-label">Filter by action</label>
+        <div class="input-group"><span class="input-group-text"><i class="bi bi-lightning" aria-hidden="true"></i></span><input id="audit-filter-action" class="form-control" placeholder="e.g. login, search, upload..." autocomplete="off"></div>
+      </div>
+      <div class="col-12">
+        <span class="form-label d-block" id="outcome-chips-label">Outcome</span>
+        <div class="d-flex flex-wrap gap-2" role="group" aria-labelledby="outcome-chips-label" id="audit-outcome-chips">
+          <button type="button" class="filter-chip active" data-outcome="" aria-pressed="true">All <span class="count">{{ rows|length }}</span></button>
+          {% for o, label in [('ok', 'OK'), ('failed', 'Failed'), ('denied', 'Denied'), ('rejected', 'Rejected'), ('blocked', 'Blocked')] %}
+          <button type="button" class="filter-chip" data-outcome="{{ o }}" aria-pressed="false"><span class="chip chip-{{ o }} p-0 px-1" aria-hidden="true">&bull;</span>{{ label }} <span class="count">{{ outcome_counts[o] }}</span></button>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table mv-table" id="audit-table">
+      <thead><tr><th scope="col">Time</th><th scope="col">User</th><th scope="col">Action</th><th scope="col">Detail</th><th scope="col">Outcome</th></tr></thead>
+      <tbody>
+        {% for r in rows %}
+        <tr data-user="{{ r.user }}" data-action="{{ r.action }}" data-outcome="{{ r.outcome }}">
+          <td class="mono small text-nowrap">{{ r.ts }}</td>
+          <td><strong>{{ r.user }}</strong></td>
+          <td><code>{{ r.action }}</code></td>
+          <td class="small text-body-secondary text-break" style="max-width: 320px;">{{ r.detail }}</td>
+          <td><span class="chip chip-{{ r.outcome }}">{{ r.outcome }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div id="audit-filter-empty" class="empty-state" style="display: {% if rows|length == 0 %}block{% else %}none{% endif %};">
+    <i class="bi bi-funnel" aria-hidden="true"></i>
+    <p class="mb-0">No audit entries match the current filter.</p>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Register Patient - Medi Vault{% endblock %}
+
+{% block content %}
+<a href="/patients" class="btn btn-outline-secondary btn-sm rounded-pill mb-3"><i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Back to patients</a>
+
+<div class="row justify-content-center">
+  <div class="col-lg-8 col-xl-7">
+    <div class="mv-card fade-up">
+      <div class="mv-card-header">
+        <div class="d-flex align-items-center gap-3">
+          <span class="header-icon" aria-hidden="true"><i class="bi bi-person-plus-fill"></i></span>
+          <div>
+            <h1 class="h4 fw-bold mb-1">Register new patient</h1>
+            <p class="text-body-secondary mb-0 small">Create a record in the patient directory. MRN must be unique.</p>
+          </div>
+        </div>
+      </div>
+      <form method="post" action="/patients/new" class="mv-card-body" novalidate>
+        <input type="hidden" name="csrf" value="{{ csrf() }}">
+
+        <div class="form-note mb-4" role="note">
+          <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
+          <span>Use synthetic (fake) data only. Never enter real patient information.</span>
+        </div>
+
+        <fieldset class="form-section">
+          <legend class="form-section-title"><i class="bi bi-person-vcard" aria-hidden="true"></i>Patient identity</legend>
+          <div class="row g-3">
+            <div class="col-12">
+              <label for="name" class="form-label">Full name</label>
+              <div class="input-group has-validation">
+                <span class="input-group-text"><i class="bi bi-person" aria-hidden="true"></i></span>
+                <input id="name" name="name" class="form-control {% if errors.name %}is-invalid{% endif %}" value="{{ form.name or '' }}" maxlength="100" required placeholder="e.g. Priya Sharma (fake)" autocomplete="off" {% if errors.name %}aria-invalid="true" aria-describedby="name-error"{% endif %}>
+              </div>
+              {% if errors.name %}<div class="invalid-feedback d-block" id="name-error">{{ errors.name }}</div>{% endif %}
+            </div>
+            <div class="col-12">
+              <label for="mrn" class="form-label">Medical Record Number (MRN)</label>
+              <div class="input-group has-validation">
+                <span class="input-group-text"><i class="bi bi-upc-scan" aria-hidden="true"></i></span>
+                <input id="mrn" name="mrn" class="form-control mono {% if errors.mrn %}is-invalid{% endif %}" value="{{ form.mrn or '' }}" maxlength="20" required placeholder="MRN-2001" autocomplete="off" aria-describedby="mrn-hint{% if errors.mrn %} mrn-error{% endif %}" {% if errors.mrn %}aria-invalid="true"{% endif %}>
+              </div>
+              <div class="form-text" id="mrn-hint">3-20 letters, digits or hyphens.</div>
+              {% if errors.mrn %}<div class="invalid-feedback d-block" id="mrn-error">{{ errors.mrn }}</div>{% endif %}
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="form-section">
+          <legend class="form-section-title is-blue"><i class="bi bi-calendar3" aria-hidden="true"></i>Key dates</legend>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="dob" class="form-label">Date of birth</label>
+              <input id="dob" name="dob" type="date" class="form-control {% if errors.dob %}is-invalid{% endif %}" value="{{ form.dob or '' }}" max="{{ today }}" required aria-describedby="dob-hint{% if errors.dob %} dob-error{% endif %}" {% if errors.dob %}aria-invalid="true"{% endif %}>
+              <div class="form-text" id="dob-hint">Must be today or earlier.</div>
+              {% if errors.dob %}<div class="invalid-feedback d-block" id="dob-error">{{ errors.dob }}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label for="registered_on" class="form-label">Registration date</label>
+              <input id="registered_on" name="registered_on" type="date" class="form-control {% if errors.registered_on %}is-invalid{% endif %}" value="{{ form.registered_on or today }}" min="{{ today }}" required aria-describedby="reg-hint{% if errors.registered_on %} reg-error{% endif %}" {% if errors.registered_on %}aria-invalid="true"{% endif %}>
+              <div class="form-text" id="reg-hint">Defaults to today. Past dates are rejected.</div>
+              {% if errors.registered_on %}<div class="invalid-feedback d-block" id="reg-error">{{ errors.registered_on }}</div>{% endif %}
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="form-actions">
+          <a href="/patients" class="btn btn-outline-secondary rounded-pill px-4">Cancel</a>
+          <button type="submit" class="btn btn-gradient rounded-pill px-4"><i class="bi bi-check2-circle me-1" aria-hidden="true"></i>Register patient</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

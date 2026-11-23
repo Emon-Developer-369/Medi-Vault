@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block title %}Manage Users - Medi Vault{% endblock %}
+
+{% macro hidden(tab) -%}
+<input type="hidden" name="csrf" value="{{ csrf() }}">
+<input type="hidden" name="tab" value="{{ tab }}">
+{%- endmacro %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4 fade-up">
+  <div>
+    <h1 class="page-title h2 mb-1"><span class="text-gradient">User management</span></h1>
+    <p class="text-body-secondary mb-0">Approve staff requests, assign roles, provision accounts and administer credentials.</p>
+  </div>
+  <a href="/users/new" class="btn btn-gradient rounded-pill px-4" id="btn-create-user"><i class="bi bi-person-plus me-1" aria-hidden="true"></i>+ Create user</a>
+</div>
+
+<ul class="nav mv-tabs mb-3 flex-wrap" aria-label="User status tabs">
+  {% for key, label, icon in [('pending', 'Pending Requests', 'bi-hourglass-split'), ('active', 'Active Users', 'bi-person-check'), ('declined', 'Declined', 'bi-x-octagon'), ('disabled', 'Disabled', 'bi-slash-circle'), ('deleted', 'Deleted', 'bi-trash3')] %}
+  <li class="nav-item">
+    <a href="/users?tab={{ key }}" class="nav-link {% if active_tab == key %}active{% endif %}" {% if active_tab == key %}aria-current="page"{% endif %}>
+      <i class="bi {{ icon }} me-1" aria-hidden="true"></i>{{ label }} <span class="badge rounded-pill ms-1">{{ counts[key] }}</span>
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+
+<div class="mv-card fade-up">
+  <div class="table-responsive">
+    <table class="table mv-table">
+      <thead>
+        <tr>
+          <th scope="col">User</th>
+          <th scope="col">Status</th>
+          {% if active_tab == 'pending' %}
+          <th scope="col">Requested</th>
+          {% else %}
+          <th scope="col">Role</th>
+          <th scope="col">Linked patient</th>
+          {% endif %}
+          <th scope="col">Created</th>
+          <th scope="col">Reviewed by</th>
+          <th scope="col" class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <span class="avatar" style="background: var(--mv-gradient-soft);" aria-hidden="true">{{ u.username[:2]|upper }}</span>
+              <div>
+                <strong>{{ u.username }}</strong>
+                {% if u.username == session.u %}<span class="chip chip-you ms-1">You</span>{% endif %}
+                {% if u.full_name or u.email %}<div class="small text-body-secondary">{{ u.full_name or '' }}{% if u.full_name and u.email %} &bull; {% endif %}{{ u.email or '' }}</div>{% endif %}
+              </div>
+            </div>
+          </td>
+          <td><span class="chip chip-{{ u.status }}">{{ u.status }}</span></td>
+
+          {% if active_tab == 'pending' %}
+          <td>
+            <span class="role-badge role-{{ u.requested_role or 'staff' }}">{{ (u.requested_role or 'staff')|capitalize }}</span>
+            {% if u.claimed_mrn %}<div class="small mt-1">Claimed <span class="mrn">{{ u.claimed_mrn }}</span></div>{% endif %}
+          </td>
+          {% else %}
+          <td>
+            {% if active_tab == 'active' and u.username != session.u %}
+            <form method="post" action="/users/{{ u.id }}/role?tab={{ active_tab }}" class="d-flex gap-1 align-items-center m-0">
+              {{ hidden(active_tab) }}
+              <label for="role-{{ u.id }}" class="visually-hidden">Role for {{ u.username }}</label>
+              <select id="role-{{ u.id }}" name="role" class="form-select form-select-sm" style="width: auto;" required>
+                <option value="clerk" {% if u.role == 'clerk' %}selected{% endif %}>Clerk</option>
+                <option value="doctor" {% if u.role == 'doctor' %}selected{% endif %}>Doctor</option>
+                <option value="auditor" {% if u.role == 'auditor' %}selected{% endif %}>Auditor</option>
+                {% if u.role == 'patient' %}<option value="patient" selected>Patient</option>{% endif %}
+              </select>
+              <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill">Update</button>
+            </form>
+            {% elif u.role %}
+            <span class="role-badge role-{{ u.role }}">{{ u.role }}</span>
+            {% else %}
+            <span class="text-body-secondary fst-italic small">None</span>
+            {% endif %}
+          </td>
+          <td>{% if u.patient_mrn %}<span class="mrn">{{ u.patient_mrn }}</span>{% else %}<span class="text-body-secondary">-</span>{% endif %}</td>
+          {% endif %}
+
+          <td class="small text-nowrap">{{ u.created_at or '-' }}</td>
+          <td class="small">{% if u.reviewed_by %}{{ u.reviewed_by }}<div class="text-body-secondary">{{ u.reviewed_at }}</div>{% else %}-{% endif %}</td>
+          <td class="text-end">
+            {% if u.username == session.u %}
+            <small class="text-body-secondary">Current user</small>
+            {% else %}
+            <div class="d-flex flex-wrap gap-1 justify-content-end">
+
+              {% if u.status == 'pending' %}
+              <form method="post" action="/users/{{ u.id }}/approve?tab={{ active_tab }}" class="d-flex flex-wrap gap-1 align-items-center justify-content-end m-0">
+                {{ hidden(active_tab) }}
+                <label for="approve-role-{{ u.id }}" class="visually-hidden">Role to assign</label>
+                <select id="approve-role-{{ u.id }}" name="role" class="form-select form-select-sm role-select-toggle" data-patient-field="pending-patient-{{ u.id }}" style="width: auto;" required>
+                  <option value="clerk" {% if u.requested_role != 'patient' %}selected{% endif %}>Clerk</option>
+                  <option value="doctor">Doctor</option>
+                  <option value="auditor">Auditor</option>
+                  <option value="patient" {% if u.requested_role == 'patient' %}selected{% endif %}>Patient</option>
+                </select>
+                <div id="pending-patient-{{ u.id }}" {% if u.requested_role != 'patient' %}style="display: none;"{% endif %}>
+                  <label for="approve-mrn-{{ u.id }}" class="visually-hidden">Patient MRN</label>
+                  <input id="approve-mrn-{{ u.id }}" type="text" name="mrn" value="{{ u.claimed_mrn or '' }}" placeholder="MRN-1001" class="form-control form-control-sm" style="width: 110px;">
+                </div>
+                <button type="submit" class="btn btn-sm btn-success rounded-pill"><i class="bi bi-check-lg" aria-hidden="true"></i> Approve</button>
+              </form>
+              <form method="post" action="/users/{{ u.id }}/decline?tab={{ active_tab }}" class="m-0">
+                {{ hidden(active_tab) }}
+                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill" data-confirm="Decline access request for user '{{ u.username }}'?" data-confirm-title="Decline User Request"><i class="bi bi-x-lg" aria-hidden="true"></i> Decline</button>
+              </form>
+              {% endif %}
+
+              {% if u.status == 'approved' %}
+              <form method="post" action="/users/{{ u.id }}/force-logout?tab={{ active_tab }}" class="m-0">
+                {{ hidden(active_tab) }}
+                <button type="submit" class="btn btn-sm btn-outline-secondary rounded-pill" data-confirm="Force immediate logout for '{{ u.username }}'? Their session ends on their next request." data-confirm-title="Force Logout User"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Log out now</button>
+              </form>
+              <form method="post" action="/users/{{ u.id }}/reset-password?tab={{ active_tab }}" class="m-0">
+                {{ hidden(active_tab) }}
+                <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill" data-confirm="Reset password for '{{ u.username }}'? A new temporary password will be shown once." data-confirm-title="Reset User Password"><i class="bi bi-key" aria-hidden="true"></i> Reset Password</button>
+              </form>
+              <form method="post" action="/users/{{ u.id }}/disable?tab={{ active_tab }}" class="m-0">
+                {{ hidden(active_tab) }}
+                <button type="submit" class="btn btn-sm btn-outline-warning rounded-pill" data-confirm="Disable account for '{{ u.username }}'? They immediately lose access." data-confirm-title="Disable User Account"><i class="bi bi-slash-circle" aria-hidden="true"></i> Disable</button>
+              </form>
+              <form method="post" action="/users/{{ u.id }}/delete?tab={{ active_tab }}" class="m-0">
+                {{ hidden(active_tab) }}
+                <button type="submit" class="btn btn-sm btn-danger rounded-pill" data-confirm="Delete account for '{{ u.username }}'? This soft-deletes the user and keeps the username in audit trails." data-confirm-title="Delete User"><i class="bi bi-trash3" aria-hidden="true"></i> Delete</button>
+              </form>
+              {% endif %}
+
+              {% if u.status == 'disabled' %}
+              <form method="post" action="/users/{{ u.id }}/enable?tab={{ active_tab }}" class="m-0">
+                {{ hidden(active_tab) }}
+                <button type="submit" class="btn btn-sm btn-success rounded-pill"><i class="bi bi-check-circle" aria-hidden="true"></i> Enable</button>
+              </form>
+              <form method="post" action="/users/{{ u.id }}/delete?tab={{ active_tab }}" class="m-0">
+                {{ hidden(active_tab) }}
+                <button type="submit" class="btn btn-sm btn-danger rounded-pill" data-confirm="Delete account for '{{ u.username }}'?" data-confirm-title="Delete User"><i class="bi bi-trash3" aria-hidden="true"></i> Delete</button>
+              </form>
+              {% endif %}
+
+              {% if u.status == 'declined' %}
+              <form method="post" action="/users/{{ u.id }}/approve?tab={{ active_tab }}" class="d-flex flex-wrap gap-1 align-items-center justify-content-end m-0">
+                {{ hidden(active_tab) }}
+                <label for="reapprove-role-{{ u.id }}" class="visually-hidden">Role to assign</label>
+                <select id="reapprove-role-{{ u.id }}" name="role" class="form-select form-select-sm role-select-toggle" data-patient-field="declined-patient-{{ u.id }}" style="width: auto;" required>
+                  <option value="clerk">Clerk</option>
+                  <option value="doctor">Doctor</option>
+                  <option value="auditor">Auditor</option>
+                  <option value="patient">Patient</option>
+                </select>
+                <div id="declined-patient-{{ u.id }}" style="display: none;">
+                  <label for="reapprove-mrn-{{ u.id }}" class="visually-hidden">Patient MRN</label>
+                  <input id="reapprove-mrn-{{ u.id }}" type="text" name="mrn" value="{{ u.claimed_mrn or '' }}" placeholder="MRN-1001" class="form-control form-control-sm" style="width: 110px;">
+                </div>
+                <button type="submit" class="btn btn-sm btn-success rounded-pill">Re-Approve</button>
+              </form>
+              <form method="post" action="/users/{{ u.id }}/delete?tab={{ active_tab }}" class="m-0">
+                {{ hidden(active_tab) }}
+                <button type="submit" class="btn btn-sm btn-danger rounded-pill" data-confirm="Delete account for '{{ u.username }}'?" data-confirm-title="Delete User"><i class="bi bi-trash3" aria-hidden="true"></i> Delete</button>
+              </form>
+              {% endif %}
+
+              {% if u.status == 'deleted' %}
+              <small class="text-body-secondary fst-italic">Soft-deleted</small>
+              {% endif %}
+            </div>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7"><div class="empty-state"><i class="bi bi-people" aria-hidden="true"></i>No users in {{ active_tab }} status.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
