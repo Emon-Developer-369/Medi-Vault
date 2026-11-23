@@ -2,6 +2,7 @@ import os
 import sys
 import re
 import tempfile
+import sqlite3
 import datetime
 import pytest
 
@@ -1235,3 +1236,33 @@ def test_every_page_renders_for_its_role(client):
     for p in ("/", "/login", "/patient-login", "/signup", "/signup?type=staff"):
         assert client.get(p).status_code == 200, p
     assert client.get("/nope").status_code == 404
+
+
+def test_production_database_has_no_default_demo_accounts(tmp_path, monkeypatch):
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("BOOTSTRAP_AUDITOR_USERNAME", "site_admin")
+    monkeypatch.setenv("BOOTSTRAP_AUDITOR_PASSWORD", "UniqueProductionPass123!")
+    db_path = str(tmp_path / "production.db")
+
+    app.init_db(db_path)
+
+    with sqlite3.connect(db_path) as conn:
+        users = conn.execute("SELECT username, role, must_change_password FROM users").fetchall()
+        patients = conn.execute("SELECT COUNT(*) FROM patients").fetchone()[0]
+    assert users == [("site_admin", "auditor", 1)]
+    assert patients == 0
+
+
+def test_existing_production_auditor_does_not_need_bootstrap_secret(tmp_path, monkeypatch):
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("BOOTSTRAP_AUDITOR_USERNAME", "site_admin")
+    monkeypatch.setenv("BOOTSTRAP_AUDITOR_PASSWORD", "UniqueProductionPass123!")
+    db_path = str(tmp_path / "production-existing.db")
+    app.init_db(db_path)
+
+    monkeypatch.delenv("BOOTSTRAP_AUDITOR_USERNAME")
+    monkeypatch.delenv("BOOTSTRAP_AUDITOR_PASSWORD")
+    app.init_db(db_path)
+
+    with sqlite3.connect(db_path) as conn:
+        assert conn.execute("SELECT COUNT(*) FROM users WHERE role='auditor' AND status='approved'").fetchone()[0] == 1
