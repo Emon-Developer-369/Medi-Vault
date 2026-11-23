@@ -2,6 +2,7 @@ services:
   - type: web
     name: medi-vault
     runtime: python
+    plan: starter
     rootDir: Medi_vault_Emon
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn --workers 2 --bind 0.0.0.0:$PORT app:app
