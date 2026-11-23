@@ -83,7 +83,7 @@ app = Flask(__name__)
 # Trust one reverse-proxy hop so external URLs (Google OAuth redirect) use the public scheme/host.
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 SECRET_KEY = os.environ.get("SECRET_KEY")
-if os.environ.get("RENDER") == "true" and not SECRET_KEY:
+if os.environ.get("APP_ENV") == "production" and not SECRET_KEY:
     raise RuntimeError("Set SECRET_KEY in the production environment.")
 app.secret_key = SECRET_KEY or secrets.token_hex(32)
 
@@ -344,73 +344,92 @@ def init_db(db_path=None):
                 ),
             )
 
-    # Seed staff data if users table is empty
-    if not c.execute("SELECT 1 FROM users WHERE role IN ('clerk', 'doctor', 'auditor')").fetchone():
-        pw = generate_password_hash(os.environ.get("DEMO_PASSWORD", "Demo@1234"), method="pbkdf2:sha256")
-        for u, r in [("clerk", "clerk"), ("doctor", "doctor"), ("auditor", "auditor")]:
-            c.execute(
-                "INSERT INTO users(username, pw_hash, role, status, must_change_password, session_version, created_at) VALUES(?, ?, ?, 'approved', 0, 0, ?)",
-                (u, pw, r, now()),
+    # Demo accounts and synthetic sample records are local-development only.
+    if os.environ.get("APP_ENV") != "production":
+        # Seed staff data if users table is empty
+        if not c.execute("SELECT 1 FROM users WHERE role IN ('clerk', 'doctor', 'auditor')").fetchone():
+            pw = generate_password_hash(os.environ.get("DEMO_PASSWORD", "Demo@1234"), method="pbkdf2:sha256")
+            for u, r in [("clerk", "clerk"), ("doctor", "doctor"), ("auditor", "auditor")]:
+                c.execute(
+                    "INSERT INTO users(username, pw_hash, role, status, must_change_password, session_version, created_at) VALUES(?, ?, ?, 'approved', 0, 0, ?)",
+                    (u, pw, r, now()),
+                )
+    
+            for mrn, n, d in [
+                ("MRN-1001", "Asha Verma (fake)", "1985-03-14"),
+                ("MRN-1002", "Ravi Kumar (fake)", "1990-07-02"),
+                ("MRN-1003", "Meena Iyer (fake)", "1978-11-23"),
+            ]:
+                c.execute(
+                    "INSERT INTO patients(mrn, name, dob, registered_on, created_by, created_at) VALUES(?, ?, ?, ?, ?, ?)",
+                    (mrn, n, d, d, "seed", now()),
+                )
+    
+            pdf = (
+                b"%PDF-1.1\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n"
+                b"3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 300 120]/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>endobj\n"
+                b"4 0 obj<</Length 60>>stream\nBT /F1 14 Tf 20 60 Td (FAKE lab report - synthetic data) Tj ET\nendstream endobj\n"
+                b"5 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF"
             )
-
-        for mrn, n, d in [
-            ("MRN-1001", "Asha Verma (fake)", "1985-03-14"),
-            ("MRN-1002", "Ravi Kumar (fake)", "1990-07-02"),
-            ("MRN-1003", "Meena Iyer (fake)", "1978-11-23"),
-        ]:
-            c.execute(
-                "INSERT INTO patients(mrn, name, dob, registered_on, created_by, created_at) VALUES(?, ?, ?, ?, ?, ?)",
-                (mrn, n, d, d, "seed", now()),
+            name = uuid.uuid4().hex + ".pdf"
+            with open(os.path.join(UPLOADS, name), "wb") as f:
+                f.write(pdf)
+            sha = hashlib.sha256(pdf).hexdigest()
+            cur = c.execute(
+                """
+                INSERT INTO documents(patient_id, title, doc_type, notes, stored_name, original_name, size, sha256, version, uploaded_by, created_at)
+                VALUES(1, 'Sample blood test', 'Lab report', 'Baseline blood report on admission', ?, 'sample.pdf', ?, ?, 1, 'seed', ?)
+            """,
+                (name, len(pdf), sha, now()),
             )
-
-        pdf = (
-            b"%PDF-1.1\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n"
-            b"3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 300 120]/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>endobj\n"
-            b"4 0 obj<</Length 60>>stream\nBT /F1 14 Tf 20 60 Td (FAKE lab report - synthetic data) Tj ET\nendstream endobj\n"
-            b"5 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF"
-        )
-        name = uuid.uuid4().hex + ".pdf"
-        with open(os.path.join(UPLOADS, name), "wb") as f:
-            f.write(pdf)
-        sha = hashlib.sha256(pdf).hexdigest()
-        cur = c.execute(
-            """
-            INSERT INTO documents(patient_id, title, doc_type, notes, stored_name, original_name, size, sha256, version, uploaded_by, created_at)
-            VALUES(1, 'Sample blood test', 'Lab report', 'Baseline blood report on admission', ?, 'sample.pdf', ?, ?, 1, 'seed', ?)
-        """,
-            (name, len(pdf), sha, now()),
-        )
-        doc_id = cur.lastrowid
-        c.execute(
-            """
-            INSERT INTO document_history(document_id, version, title, doc_type, notes, stored_name, sha256, changed_by, changed_at, change_type)
-            VALUES(?, 1, 'Sample blood test', 'Lab report', 'Baseline blood report on admission', ?, ?, 'seed', ?, 'created')
-        """,
-            (doc_id, name, sha, now()),
-        )
-
-    # Seed demo patient user 'asha' linked to MRN-1001 if no asha account exists
-    if not c.execute("SELECT 1 FROM users WHERE username='asha'").fetchone():
-        p1 = c.execute("SELECT id FROM patients WHERE mrn='MRN-1001'").fetchone()
-        if p1:
-            asha_pw = generate_password_hash(os.environ.get("DEMO_PASSWORD", "Demo@1234"), method="pbkdf2:sha256")
+            doc_id = cur.lastrowid
             c.execute(
                 """
-                INSERT OR IGNORE INTO users(username, pw_hash, role, status, patient_id, must_change_password, session_version, created_at)
-                VALUES('asha', ?, 'patient', 'approved', ?, 0, 0, ?)
+                INSERT INTO document_history(document_id, version, title, doc_type, notes, stored_name, sha256, changed_by, changed_at, change_type)
+                VALUES(?, 1, 'Sample blood test', 'Lab report', 'Baseline blood report on admission', ?, ?, 'seed', ?, 'created')
             """,
-                (asha_pw, p1["id"], now()),
+                (doc_id, name, sha, now()),
             )
-            # Add seed prescription for MRN-1001
-            has_rx = c.execute("SELECT 1 FROM prescriptions WHERE patient_id=?", (p1["id"],)).fetchone()
-            if not has_rx:
+    
+        # Seed demo patient user 'asha' linked to MRN-1001 if no asha account exists
+        if not c.execute("SELECT 1 FROM users WHERE username='asha'").fetchone():
+            p1 = c.execute("SELECT id FROM patients WHERE mrn='MRN-1001'").fetchone()
+            if p1:
+                asha_pw = generate_password_hash(os.environ.get("DEMO_PASSWORD", "Demo@1234"), method="pbkdf2:sha256")
                 c.execute(
                     """
-                    INSERT INTO prescriptions(patient_id, medicine, dosage, frequency, duration, instructions, status, prescribed_by, prescribed_at)
-                    VALUES(?, 'Paracetamol', '500 mg', 'Twice daily', '5 days', 'after food', 'active', 'doctor', ?)
+                    INSERT OR IGNORE INTO users(username, pw_hash, role, status, patient_id, must_change_password, session_version, created_at)
+                    VALUES('asha', ?, 'patient', 'approved', ?, 0, 0, ?)
                 """,
-                    (p1["id"], now()),
+                    (asha_pw, p1["id"], now()),
                 )
+                # Add seed prescription for MRN-1001
+                has_rx = c.execute("SELECT 1 FROM prescriptions WHERE patient_id=?", (p1["id"],)).fetchone()
+                if not has_rx:
+                    c.execute(
+                        """
+                        INSERT INTO prescriptions(patient_id, medicine, dosage, frequency, duration, instructions, status, prescribed_by, prescribed_at)
+                        VALUES(?, 'Paracetamol', '500 mg', 'Twice daily', '5 days', 'after food', 'active', 'doctor', ?)
+                    """,
+                        (p1["id"], now()),
+                    )
+    
+    
+
+    # Production starts with one explicitly configured auditor account.
+    if os.environ.get("APP_ENV") == "production":
+        admin_username = os.environ.get("BOOTSTRAP_AUDITOR_USERNAME", "").strip()
+        admin_password = os.environ.get("BOOTSTRAP_AUDITOR_PASSWORD", "")
+        if not admin_username or len(admin_password) < 16:
+            raise RuntimeError("Set BOOTSTRAP_AUDITOR_USERNAME and a BOOTSTRAP_AUDITOR_PASSWORD of at least 16 characters.")
+        if not re.fullmatch(r"[A-Za-z0-9_.-]{3,32}", admin_username):
+            raise RuntimeError("BOOTSTRAP_AUDITOR_USERNAME must be 3-32 letters, numbers, dots, underscores, or hyphens.")
+        if not c.execute("SELECT 1 FROM users WHERE role='auditor' AND status='approved'").fetchone():
+            admin_hash = generate_password_hash(admin_password, method="pbkdf2:sha256")
+            c.execute(
+                "INSERT INTO users(username, pw_hash, role, status, must_change_password, session_version, created_at) VALUES(?, ?, 'auditor', 'approved', 1, 0, ?)",
+                (admin_username, admin_hash, now()),
+            )
 
     c.commit()
     c.close()
